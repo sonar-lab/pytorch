@@ -150,6 +150,8 @@ class TestAOTInductorPackage(TestCase):
         custom_env = os.environ.copy()
         custom_env["CMAKE_PREFIX_PATH"] = str(Path(torch.__file__).parent)
         build_path = Path(base_dir) / "build"
+        print(base_dir)
+        breakpoint()
         build_path.mkdir()
         subprocess.run(
             ["cmake", ".."],
@@ -467,12 +469,20 @@ class TestAOTInductorPackage(TestCase):
         self.check_package_cpp_only()
 
         class Model1(torch.nn.Module):
+            def __init__(self, a):
+                super().__init__()
+                self.a = a
+
             def forward(self, x, y):
-                return x + y
+                return x + y + self.a
 
         class Model2(torch.nn.Module):
+            def __init__(self, a):
+                super().__init__()
+                self.a = a
+
             def forward(self, x, y):
-                return x - y
+                return x - y + self.a
 
         def default(*args, **kwargs):
             return None
@@ -482,9 +492,11 @@ class TestAOTInductorPackage(TestCase):
             torch.ones(3, 3).to(self.device),
         )
 
+        a = torch.ones(3, 3).to(self.device)
+
         package = _ExportPackage()
-        m1 = Model1()
-        m2 = Model2()
+        m1 = Model1(a)
+        m2 = Model2(a)
         exporter1 = package._exporter("Plus", m1)._define_overload("default", default)
         exporter2 = package._exporter("Minus", m2)._define_overload("default", default)
         exporter1(*example_inputs)
